@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
 from __future__ import annotations
+import copy
 import logging
 import pickle
 import torch
 
 
-__all__ = ('device', 'Trainer', 'get_logger')
+__all__ = ('device', 'Trainer')
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -14,7 +15,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class AverageMeter:
     """Computes and stores the current and weighted average value."""
-
+    __slots__ = 'average', 'value', 'sum', 'count'
     def __init__(self):
         self.average = 0.
         self.value = 0.
@@ -25,7 +26,7 @@ class AverageMeter:
         self.value = value
         self.sum += value * n
         self.count += n
-        self.avrage = self.sum / self.count
+        self.average = self.sum / self.count
         return self
 
 
@@ -33,10 +34,9 @@ class Trainer():
     """Class for training a model."""
     def __init__(self, model: torch.nn.Module,
                  *,
-                 epochs: int = 200,
                  start_epoch: int = 0,
                  filename: str | None = None,
-                 logger: logging.Logger | str | None = None,
+                 logger: str | None = None,
                  lr: float = 0.1,
                  milestones: list[int] = [100, 150],
                  gamma: float = 0.1,
@@ -44,7 +44,6 @@ class Trainer():
                  momentum: float = 0.9
                  ):
         self.model = model
-        self.epochs = epochs
         self.epoch = start_epoch
         self.filename = 'trainer.trainer' if filename is None else filename
         if isinstance(logger, logging.Logger):
@@ -54,6 +53,7 @@ class Trainer():
         else:
             self.logger = get_logger('trainer')
 
+        self.device = next(self.model.parameters()).device
         self.loss_function = torch.nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(
             self.model.parameters(),
@@ -78,19 +78,25 @@ class Trainer():
 
     def save(self):
         data = self.__dict__.copy()
-        data['model'] = self.model.cpu()
+        # Note torch.nn.Module.cpu (or to(device)) is an inplace operation.
+        data['model'] = copy.deepcopy(self.model).cpu()
         with open(self.filename, 'wb') as f:
-            f.write(pickle.dumps((data, self.model.device)))
+            f.write(pickle.dumps((data, self.device)))
 
+    def save_as(self, filename: str):
+        self.filename = filename
+        return self.save()
+            
     @staticmethod
     def load(filename: str, device: torch.device | int | str | None = None
              ) -> Trainer:
         with open(filename, 'rb') as f:
             data, device = pickle.loads(f.read())
         if device is not None:
-            data['model'] = data['model'].to(device)
+            data['model'].to(device)      # It's an inplace operation.
         res = object.__new__(Trainer)
         res.__dict__.update(data)
+        res.trainer = get_logger(res.logger.name)
         return res
 
     def train(self,
@@ -98,6 +104,7 @@ class Trainer():
               log_every: int = 50
               ) -> tuple[AverageMeter, AverageMeter]:
         "Train the model by given dataloader."
+        self.logger.info(f'---- Epoch {self.epoch} ----')
         self.model.train()
         loss_meter = AverageMeter()
         error_meter = AverageMeter()
@@ -105,6 +112,8 @@ class Trainer():
         trained_samples = 0
         for i, (x, y) in enumerate(train_dataloader):
             current_batch_size = x.shape[0]
+            x = x.to(self.device)
+            y = y.to(self.device)
             # compute prediction error
             y_pred = self.model(x)
             loss = self.loss_function(y_pred, y)
@@ -117,15 +126,17 @@ class Trainer():
             loss_meter.update(loss.item(), current_batch_size)
             with torch.no_grad():
                 error_meter.update(
-                    1 - (y_pred.argmax(1) == y).sum().item(),
+                    1 - (y_pred.argmax(1) == y).sum().item() /
+                        current_batch_size,
                     current_batch_size)
             if (i + 1) % log_every == 0:
                 self.logger.info(f'loss = {loss_meter.value:.7f} '
-                                 f'error = {error_meter.value*100:>0.1f} '
-                                 f'[{trained_samples:>5d}/{size:>5d}]')
+                                 f'error = {error_meter.value*100:>0.1f}% '
+                                 f'[{trained_samples:>5d}/{size:>5d}, '
+                                 f'{trained_samples / size * 100:>0.1f}%]')
         self.logger.info(f'train result: '
-                         f'loss = {loss_meter.average:.7f} '
-                         f'error = {error_meter.average*100:>.1f}')
+                         f'avg loss = {loss_meter.average:.7f} '
+                         f'avg error = {error_meter.average*100:>.1f}%')
         self.scheduler.step()
         # Save information for this epoch.
         self.epoch += 1
@@ -142,14 +153,17 @@ class Trainer():
         with torch.no_grad():
             for i, (x, y) in enumerate(test_dataloader):
                 current_batch_size = x.shape[0]
+                x = x.to(self.device)
+                y = y.to(self.device)
                 y_pred = self.model(x)
                 loss_meter.update(self.loss_function(y_pred, y).item(),
                                   current_batch_size)
-                error_meter.update(1 - (y_pred.argmax(1) == y).sum().item(),
+                error_meter.update(1 - (y_pred.argmax(1) == y).sum().item() /
+                                       current_batch_size,
                                    current_batch_size)
         self.logger.info(f'test result: '
-                         f'loss = {loss_meter.average:.7f} '
-                         f'error = {error_meter.average*100:>.1f}')
+                         f'avg loss = {loss_meter.average:.7f} '
+                         f'avg error = {error_meter.average*100:>.1f}%')
         # Save test results only the fisrt run.
         if len(self.history['test_loss']) < self.epoch:
             self.history['test_loss'].append(loss_meter.average)
@@ -157,7 +171,7 @@ class Trainer():
         return loss_meter, error_meter
 
 
-def get_logger(name):
+def get_logger(name: str) -> logging.Logger:
     logger = logging.getLogger(name)
     handler = logging.StreamHandler()
     # formatter = logging.Formatter('%(asctime)s %(message)s')
