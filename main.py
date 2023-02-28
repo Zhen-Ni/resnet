@@ -31,4 +31,4 @@ if __name__ == '__main__':
         while trainer.epoch < epochs:
             trainer.train(train_dataloader)
             trainer.test(test_dataloader)
-            trainer.save()
+            trainer.save(device='cpu')
