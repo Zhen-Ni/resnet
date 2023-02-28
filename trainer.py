@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from __future__ import annotations
+from io import BytesIO
 import copy
 import logging
 import pickle
@@ -11,6 +12,19 @@ __all__ = ('device', 'Trainer')
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def copy_to(data, device: torch.device | int | str | None = None):
+    # Avoid useless copy in gpu.
+    # See https://discuss.pytorch.org/t/how-to-make-a-copy-of-a-gpu-model-on-the-cpu/90955/4
+    if device is None:
+        return data
+    memory = BytesIO()
+    torch.save(data, memory, pickle_protocol=-1)
+    memory.seek(0)
+    data = torch.load(memory, map_location=device)
+    memory.close()
+    return data
 
 
 class AverageMeter:
@@ -53,8 +67,7 @@ class Trainer():
         else:
             self.logger = get_logger('trainer')
 
-        self.device = next(self.model.parameters()).device
-        self.loss_function = torch.nn.CrossEntropyLoss()
+        self.loss_function = torch.nn.CrossEntropyLoss().to(self.device)
         self.optimizer = torch.optim.SGD(
             self.model.parameters(),
             lr=lr, weight_decay=weight_decay, momentum=momentum)
@@ -68,6 +81,10 @@ class Trainer():
                                                 'test_error': []}
 
     @property
+    def device(self) -> torch.device:
+        return next(self.model.parameters()).device
+
+    @property
     def lr(self) -> list[float]:
         return [pg['lr'] for pg in self.optimizer.param_groups]
 
@@ -76,10 +93,10 @@ class Trainer():
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = lr
 
-    def save(self):
-        data = self.__dict__.copy()
-        # Note torch.nn.Module.cpu (or to(device)) is an inplace operation.
-        data['model'] = copy.deepcopy(self.model).cpu()
+
+
+    def save(self, device: torch.device | int | str | None = "cpu"):
+        data = copy_to(self.__dict__, device)        
         with open(self.filename, 'wb') as f:
             f.write(pickle.dumps((data, self.device)))
 
@@ -91,12 +108,14 @@ class Trainer():
     def load(filename: str, device: torch.device | int | str | None = None
              ) -> Trainer:
         with open(filename, 'rb') as f:
-            data, device = pickle.loads(f.read())
-        if device is not None:
-            data['model'].to(device)      # It's an inplace operation.
+            data, default_device = pickle.loads(f.read())
+        if device is None:
+            data = copy_to(data, default_device)
+        else:
+            data = copy_to(data, device)
         res = object.__new__(Trainer)
         res.__dict__.update(data)
-        res.trainer = get_logger(res.logger.name)
+        res.logger = get_logger(res.logger.name)
         return res
 
     def train(self,
