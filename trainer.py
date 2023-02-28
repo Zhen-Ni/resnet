@@ -163,9 +163,10 @@ class Trainer():
         self.history['train_error'].append(error_meter.average)
         return loss_meter, error_meter
 
-    def test(self, test_dataloader: torch.utils.data.DataLoader
+    def test(self, test_dataloader: torch.utils.data.DataLoader,
+             k: int = 1
              ) -> tuple[AverageMeter, AverageMeter]:
-        "Test the model by given dataloader."
+        "Test the model using top-k error by given dataloader."
         self.model.eval()
         loss_meter = AverageMeter()
         error_meter = AverageMeter()
@@ -177,12 +178,15 @@ class Trainer():
                 y_pred = self.model(x)
                 loss_meter.update(self.loss_function(y_pred, y).item(),
                                   current_batch_size)
-                error_meter.update(1 - (y_pred.argmax(1) == y).sum().item() /
-                                       current_batch_size,
+                values, indices = torch.topk(y_pred, k)
+                correct = y.view(-1, 1).expand_as(indices) == indices
+                correct = correct.sum()
+                error_meter.update(1 - correct / current_batch_size,
                                    current_batch_size)
         self.logger.info(f'test result: '
                          f'avg loss = {loss_meter.average:.7f} '
-                         f'avg error = {error_meter.average*100:>.1f}%')
+                         f'avg error (top-{k}) = '
+                         f'{error_meter.average*100:>.1f}%')
         # Save test results only the fisrt run.
         if len(self.history['test_loss']) < self.epoch:
             self.history['test_loss'].append(loss_meter.average)
