@@ -1,0 +1,29 @@
+#+title: Implementation of ResNet for CIFAR-10 dataset
+
+* Implementation of Resnet for CIFAR-10 dataset
+ResNet is the most famous CNN network for image classification. Its
+structure is also widely used for other tasks concerning computer vision.
+
+Resnet was proposed by Kaiming He and his coworkers in the paper [[https://arxiv.org/abs/1512.03385][Deep
+Residual Learning for Image Recognition]]. As a famous machine-learning
+library, pytorch implemented ResNet in its ~torchvision~
+library. Unfortunately, this implementation has some slight difference
+with the original paper. For example, the paper introduces Option A
+and Option B for Resnet, but the ~torchvision~ library only implemented
+the latter one. Thus, it is of vital importance to build a model same
+as that in the paper.
+
+Due to limitation of computation resources, only Resnet for CIFAR-10 dataset is implemented and studied here.
+
+* Package Description
+This package tries to implement the ResNet on CIFAR-10 dataset
+described in Chapter 4.2 in He's paper. The files are organized as
+follows.
+
+| filename       | description                                        |
+|----------------+----------------------------------------------------|
+| resnet.py      | implementation of resnet and corresponding dataset |
+| trainer.py     | provides a trainer to train and test the model     |
+| main.py        | run this file to train the model                   |
+| show__{}result.py | plot the training and testing error                |
+
