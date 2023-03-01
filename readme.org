@@ -1,6 +1,5 @@
-#+title: Implementation of ResNet for CIFAR-10 dataset
-
-* Implementation of Resnet for CIFAR-10 dataset
+* Implementation of ResNet for CIFAR-10 dataset
+** Introduction
 ResNet is the most famous CNN network for image classification. Its
 structure is also widely used for other tasks concerning computer vision.
 
@@ -13,17 +12,46 @@ and Option B for Resnet, but the ~torchvision~ library only implemented
 the latter one. Thus, it is of vital importance to build a model same
 as that in the paper.
 
-Due to limitation of computation resources, only Resnet for CIFAR-10 dataset is implemented and studied here.
+Due to limitation of computation resources, only Resnet for CIFAR-10
+dataset is implemented and studied here.
 
-* Package Description
+** Package Description
 This package tries to implement the ResNet on CIFAR-10 dataset
-described in Chapter 4.2 in He's paper. The files are organized as
-follows.
+described in Chapter 4.2 in He's paper. Both Option A and Option B are
+implemented. In Option A, the resolution of the image is halved when
+the number of features is doubled. This can be done by either ignoring
+half of the pixels or using a maxpool. Here, both of this approaches
+are implemented, with Option A1 (the default) is the former one and
+Option A2 is the latter one.
 
-| filename       | description                                        |
+The model and the trainer are organized in different files. The result
+of the models can also be plotted. The files of the package are
+organized as follows.
+
+| Filename       | Description                                        |
 |----------------+----------------------------------------------------|
 | resnet.py      | implementation of resnet and corresponding dataset |
 | trainer.py     | provides a trainer to train and test the model     |
 | main.py        | run this file to train the model                   |
 | show__{}result.py | plot the training and testing error                |
+
+** Training Process
+Here, the CIFAR-10 dataset is used for traning, with 50k/10k split of
+the dataset, which is done by ~torchvision.datasets.CIFAR10~. The mean
+values of the three channels of the input dataset are normalized to
+0.485, 0.456, 0.406, respectively, and the std values are normalized
+to 0.229, 0.224, 0.225. 
+
+The training has a total of 200 epochs. The
+learning rate is started at 0.1, and divided by 10 at 100-th epoch and
+150-th epoch.
+
+The other settings are consistent with that described in the paper.
+
+** Results
+| Name     | n | Layers | Error (A1) | Error (A2) | Error (B) | Comment      |
+|----------+---+--------+------------+------------+-----------+--------------|
+| resnet8  | 1 |      8 |            |            |           | not in paper |
+| resnet20 | 3 |     20 |            |            |           |              |
+| resnet32 | 5 |     32 |            |            |           |              |
 

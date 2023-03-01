@@ -2,7 +2,7 @@
 
 import torch
 from resnet import get_dataloader
-from resnet import resnet8, resnet20, resnet32
+from resnet import resnet8, resnet20, resnet32, resnet44, resnet56, resnet110
 from trainer import Trainer, device
 
 
@@ -12,16 +12,15 @@ if __name__ == '__main__':
     train_dataloader = get_dataloader(True)
     test_dataloader = get_dataloader(False)
 
-    resnet8 = resnet8.to(device)
-    resnet20 = resnet20.to(device)
-    resnet32 = resnet32.to(device)
-    names = 'resnet8', 'resnet20', 'resnet32'
+    names = ('resnet8', 'resnet20', 'resnet32', 'resnet44',
+             'resnet56', 'resnet110')
 
     print(f"using device: {device.type}")
 
-    for i, model in enumerate([resnet8, resnet20, resnet32]):
+    for i, name in enumerate(names):
         filename = f'{names[i]}.trainer'
-        print(f' ###### Start to process {names[i]} ###### ')
+        print(f' ###### Start to process {name} ###### ')
+        model = eval(name)(device)
         try:
             trainer = Trainer.load(filename, device=device)
             print("Use stored trainer, continue training.")
