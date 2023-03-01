@@ -17,7 +17,7 @@ class Shortcut(torch.nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = torch.nn.functional.pad(
             x[:, :, ::2, ::2],
-            pad=[0, 0, 0, 0, self.n_layers//4, self.n_layers//4],
+            pad=[0, 0, 0, 0, 0, self.n_layers - self.n_layers//2],
             mode='constant', value=0.)
         return y
 
