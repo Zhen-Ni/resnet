@@ -6,10 +6,11 @@ import torchvision
 
 
 __all__ = ('SimpleResNet', 'get_dataloader',
-           'resnet8', 'resnet20', 'resnet32')
+           'resnet8', 'resnet20', 'resnet32', 'resnet44', 'resnet56',
+           'resnet110')
 
 
-class Shortcut(torch.nn.Module):
+class Shortcut1(torch.nn.Module):
     def __init__(self, n_layers: int):
         super().__init__()
         self.n_layers = n_layers
@@ -22,8 +23,22 @@ class Shortcut(torch.nn.Module):
         return y
 
 
+class Shortcut2(torch.nn.Module):
+    def __init__(self, n_layers: int):
+        super().__init__()
+        self.n_layers = n_layers
+        self.pool = torch.nn.MaxPool2d(2, 2)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.pool(x)
+        y = torch.nn.functional.pad(
+            x, pad=[0, 0, 0, 0, 0, self.n_layers - self.n_layers//2],
+            mode='constant', value=0.)
+        return y
+    
+
 class BasicBlock(torch.nn.Module):
-    def __init__(self, n_layers: int, subsampling: bool, option='A'):
+    def __init__(self, n_layers: int, subsampling: bool, option='A1'):
         "Option is only necessary when subsampling is True"
         path2: torch.nn.Module
         super().__init__()
@@ -37,14 +52,16 @@ class BasicBlock(torch.nn.Module):
                                 padding='same', bias=False),
                 torch.nn.BatchNorm2d(n_layers)
             )
-            if option == 'A':
-                path2 = Shortcut(n_layers)
+            if option == 'A1':
+                path2 = Shortcut1(n_layers)
+            elif option == 'A2':
+                path2 = Shortcut2(n_layers)
             elif option == 'B':
                 path2 = torch.nn.Conv2d(n_layers // 2, n_layers,
                     (3, 3), (2, 2), (1, 1),
                     bias=False)
             else:
-                    raise ValueError("option must be 'A' or 'B'")
+                    raise ValueError("option must be 'A1', 'A2' or 'B'")
             # match option:
             #     case 'A':
             #         path2 = Shortcut(n_layers)
@@ -77,7 +94,7 @@ class BasicBlock(torch.nn.Module):
 
 
 class SimpleResNet(torch.nn.Module):
-    def __init__(self, n: int = 2, option: str = 'A'):
+    def __init__(self, n: int = 2, option: str = 'A1'):
         super().__init__()
         self.n = n
         self.input = torch.nn.Sequential(torch.nn.Conv2d(3, 16, (3, 3),
@@ -119,9 +136,34 @@ class SimpleResNet(torch.nn.Module):
         return y
 
 
-resnet8 = SimpleResNet(1)
-resnet20 = SimpleResNet(3)
-resnet32 = SimpleResNet(5)
+def resnet8(device: torch.device | str | int | None = None
+            ) -> SimpleResNet:
+    return SimpleResNet(1).to(device)
+
+
+def resnet20(device: torch.device | str | int | None = None
+             ) -> SimpleResNet:
+    return SimpleResNet(3).to(device)
+
+
+def resnet32(device: torch.device | str | int | None = None
+             ) -> SimpleResNet:
+    return SimpleResNet(5).to(device)
+
+
+def resnet44(device: torch.device | str | int | None = None
+             ) -> SimpleResNet:
+    return SimpleResNet(7).to(device)
+
+
+def resnet56(device: torch.device | str | int | None = None
+             ) -> SimpleResNet:
+    return SimpleResNet(9).to(device)
+
+
+def resnet110(device: torch.device | str | int | None = None
+              ) -> SimpleResNet:
+    return SimpleResNet(18).to(device)
     
 
 def upgrade(model: SimpleResNet):
