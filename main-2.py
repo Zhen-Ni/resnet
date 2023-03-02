@@ -21,7 +21,8 @@ if __name__ == '__main__':
     print(f"using device: {device.type}")
 
     for i, name in enumerate(names):
-        filename = f'{names[i]}-2.trainer'
+        name += '-2'
+        filename = f'{names[i]}.trainer'
         print(f' ###### Start to process {name} ###### ')
         model = SimpleResNet(ns[i], 'A2').to(device)
         try:
