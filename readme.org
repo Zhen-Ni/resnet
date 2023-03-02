@@ -28,12 +28,15 @@ The model and the trainer are organized in different files. The result
 of the models can also be plotted. The files of the package are
 organized as follows.
 
-| Filename       | Description                                        |
-|----------------+----------------------------------------------------|
-| resnet.py      | implementation of resnet and corresponding dataset |
-| trainer.py     | provides a trainer to train and test the model     |
-| main.py        | run this file to train the model                   |
-| show__{}result.py | plot the training and testing error                |
+| Filename         | Description                                        |
+|------------------+----------------------------------------------------|
+| resnet.py        | implementation of resnet and corresponding dataset |
+| trainer.py       | provides a trainer to train and test the model     |
+| show__{}result.py   | plot the training and testing error                |
+| main.py          | run this file to train the model, with option A1   |
+| main-2.py        | same as ~main.py~, but trains ResNet model option A2 |
+
+
 
 ** Training Process
 Here, the CIFAR-10 dataset is used for traning, with 50k/10k split of
@@ -49,9 +52,9 @@ learning rate is started at 0.1, and divided by 10 at 100-th epoch and
 The other settings are consistent with that described in the paper.
 
 ** Results
-| Name     | n | Layers | Error (A1) | Error (A2) | Error (B) | Comment      |
-|----------+---+--------+------------+------------+-----------+--------------|
-| resnet8  | 1 |      8 |            |            |           | not in paper |
-| resnet20 | 3 |     20 |            |            |           |              |
-| resnet32 | 5 |     32 |            |            |           |              |
+| Name     | n | Layers | Error (A1) | Error (A2) | Error (B) | Comment                |
+|----------+---+--------+------------+------------+-----------+------------------------|
+| resnet8  | 1 |      8 |      11.7% |      11.5% |           | not presented in paper |
+| resnet20 | 3 |     20 |      8.45% |      8.27% |           |                        |
+| resnet32 | 5 |     32 |      7.17% |       7.8% |           |                        |
 
