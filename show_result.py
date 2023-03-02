@@ -22,7 +22,7 @@ for filename in os.listdir():
 fig = plt.figure(figsize=(6, 4.5))
 ax = fig.add_subplot(111)
 
-colors = 'k', 'r', 'b', 'g'
+colors = 'k', 'r', 'b', 'g', 'c', 'm', 'y'
 
 for i, (name, trainer) in enumerate(zip(names, trainers)):
     ax.plot(trainer.history['train_error'], ':', color=colors[i])
