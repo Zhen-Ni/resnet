@@ -28,14 +28,15 @@ The model and the trainer are organized in different files. The result
 of the models can also be plotted. The files of the package are
 organized as follows.
 
-| Filename         | Description                                        |
-|------------------+----------------------------------------------------|
-| resnet.py        | implementation of resnet and corresponding dataset |
-| trainer.py       | provides a trainer to train and test the model     |
-| show__{}result.py   | plot the training and testing error                |
-| main.py          | run this file to train the model, with option A1   |
-| main-2.py        | same as ~main.py~, but trains ResNet model option A2 |
-
+| Filename       | Description                                                       |
+|----------------+-------------------------------------------------------------------|
+| resnet.py      | implementation of resnet and corresponding dataset                |
+| trainer.py     | provides a trainer to train and test the model                    |
+| show__{}result.py | plot the training and testing error                               |
+| main.py        | run this file to train the model, with option A1                  |
+| main-2.py      | same as ~main.py~, but trains ResNet model option A2                |
+| main-3.py      | same as ~main.py~, but a new dataloader is generated for each epoch |
+|                |                                                                   |
 
 
 ** Training Process
@@ -52,9 +53,36 @@ learning rate is started at 0.1, and divided by 10 at 100-th epoch and
 The other settings are consistent with that described in the paper.
 
 ** Results
+
+The following results are given by running ~main.py~ and ~main-2.py~,
+which give results for Error (A1) and Error (A2) respectively.
+
 | Name     | n | Layers | Error (A1) | Error (A2) | Error (B) | Comment                |
 |----------+---+--------+------------+------------+-----------+------------------------|
 | resnet8  | 1 |      8 |      11.7% |      11.5% |           | not presented in paper |
 | resnet20 | 3 |     20 |      8.45% |      8.27% |           |                        |
 | resnet32 | 5 |     32 |      7.17% |       7.8% |           |                        |
+
+** Discussions
+*** Regenerating Datasets for Each Epoch
+In the paper, data augmentation is done by randomly cropping and
+flipping the images. However, The dataset used for training in ~main.py~
+is generated only once, which I thought it might not be valid for data
+augmentation. So, ~main-3.py~ is written to get a new dataset with the
+same transformation for each epoch. But I soon realized the
+transformation is done each time when getting items from the
+dataset. Thus, regenerating datasets is actually non-sence, which
+should be actually the same as ~main.py~. The results of the two are
+listed below.
+
+From the results, we could obtain that although the model structure
+and training processe are actually idential, the results show a slight
+difference, less than 1%. Slight difference like this should be the
+normal behavior of neural networks.
+
+| Name     | n | Layers | Error (One dataset) | Error (new dataset for each epoch) |                        |
+|----------+---+--------+---------------------+------------------------------------+------------------------|
+| resnet8  | 1 |      8 |               11.7% |                              12.4% | not presented in paper |
+| resnet20 | 3 |     20 |               8.45% |                              7.91% |                        |
+| resnet32 | 5 |     32 |               7.17% |                                    |                        |
 
