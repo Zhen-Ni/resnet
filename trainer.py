@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from io import BytesIO
-import copy
+import time
 import logging
 import pickle
 import torch
@@ -124,6 +124,7 @@ class Trainer():
               ) -> tuple[AverageMeter, AverageMeter]:
         "Train the model by given dataloader."
         self.logger.info(f'---- Epoch {self.epoch} ----')
+        t_start = time.time()
         self.model.train()
         loss_meter = AverageMeter()
         error_meter = AverageMeter()
@@ -154,8 +155,9 @@ class Trainer():
                                  f'[{trained_samples:>5d}/{size:>5d}, '
                                  f'{trained_samples / size * 100:>0.1f}%]')
         self.logger.info(f'train result: '
-                         f'avg loss = {loss_meter.average:.7f} '
-                         f'avg error = {error_meter.average*100:>.1f}%')
+                         f'avg loss = {loss_meter.average:.4f}, '
+                         f'avg error = {error_meter.average*100:>.1f}%, '
+                         f'wall time = {time.time()- t_start:.2f}s')
         self.scheduler.step()
         # Save information for this epoch.
         self.epoch += 1
@@ -167,6 +169,7 @@ class Trainer():
              k: int = 1
              ) -> tuple[AverageMeter, AverageMeter]:
         "Test the model using top-k error by given dataloader."
+        t_start = time.time()
         self.model.eval()
         loss_meter = AverageMeter()
         error_meter = AverageMeter()
@@ -184,9 +187,10 @@ class Trainer():
                 error_meter.update(1 - correct / current_batch_size,
                                    current_batch_size)
         self.logger.info(f'test result: '
-                         f'avg loss = {loss_meter.average:.7f} '
-                         f'avg error (top-{k}) = '
-                         f'{error_meter.average*100:>.1f}%')
+                         f'avg loss = {loss_meter.average:.4f}, '
+                         f'top-{k} error = '
+                         f'{error_meter.average*100:>.1f}%, '
+                         f'wall time = {time.time()-t_start:.2f}s')
         # Save test results only the fisrt run.
         if len(self.history['test_loss']) < self.epoch:
             self.history['test_loss'].append(loss_meter.average)
