@@ -22,7 +22,7 @@ if __name__ == '__main__':
 
     for i, name in enumerate(names):
         name += '-2'
-        filename = f'{names[i]}.trainer'
+        filename = f'{name}.trainer'
         print(f' ###### Start to process {name} ###### ')
         model = SimpleResNet(ns[i], 'A2').to(device)
         try:
